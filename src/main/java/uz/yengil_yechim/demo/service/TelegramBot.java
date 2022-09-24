@@ -1,6 +1,7 @@
 package uz.yengil_yechim.demo.service;
 
 import lombok.SneakyThrows;
+import okhttp3.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -8,10 +9,12 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import uz.yengil_yechim.demo.config.BotConfig;
+import uz.yengil_yechim.demo.controller.CheckController;
 import uz.yengil_yechim.demo.entity.PayMeCheck;
 import uz.yengil_yechim.demo.payload.PayMeCheckDto;
 import uz.yengil_yechim.demo.repository.PayMeCheckRepository;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -23,6 +26,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     private PayMeCheckRepository payMeCheckRepository;
+
+    @Autowired
+    private CheckController checkController;
 
     final BotConfig config;
 
@@ -41,23 +47,24 @@ public class TelegramBot extends TelegramLongPollingBot {
         return config.getToken();
     }
 
+    @SneakyThrows
     @Override
     public void onUpdateReceived(Update update) {
 
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
-
-            if ( !messageText.isEmpty()) {
+            //config.getPayMeId() == chatId
+            if (true) {
 
                 //MESSAGENI DTOGA O'GIRB OLDIK
                 PayMeCheckDto payMeCheckDto = messagePayMeToDto(chatId, messageText);
+                if (sendToServer(payMeCheckDto)) {
 
-                PayMeCheck payMeCheck = dtoToPayMeCheck(chatId, payMeCheckDto);
+                    PayMeCheck payMeCheck = dtoToPayMeCheck(chatId, payMeCheckDto);
 
-                payMeCheckRepository.save(payMeCheck);
-
-                sendMessage(chatId, payMeCheck.toString());
+                    payMeCheckRepository.save(payMeCheck);
+                }
             }
         }
     }
@@ -79,38 +86,56 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sum.substring(1, sum.length() - 2),
                 split[4].replace("\uD83D\uDD38  ", " ").substring(19),
                 split[5].replace("\uD83D\uDCDD  ", " ").substring(3),
-                split[6].replace("\uD83D\uDD53 ", " ").substring(1),
+                split[6].replace("\uD83D\uDD53 ", " ").substring(3),
                 split[7].replace("\uD83C\uDD94 ", " ").substring(3),
-                split[8].replace("✅ ", " ").substring(2)
+                split[8].replace("✅ ", " ").substring(1)
         );
     }
 
     @SneakyThrows
     private PayMeCheck dtoToPayMeCheck(Long chatId, PayMeCheckDto payMeCheckDto) {
 
-        BigDecimal sum = new BigDecimal(payMeCheckDto.getSum());
-        long contractNumber = Long.parseLong(payMeCheckDto.getContractNumber());
-
-        String sDate = payMeCheckDto.getCheckDate();//18:32:34 22.09.2022 HH:mm:ss dd.MM.YYYY
-        Date date1 = new SimpleDateFormat("HH:mm:ss dd.MM.yyyy").parse(sDate);
-        System.out.println(sDate + "\t" + date1);
-
+//        //FILDLARNI KERAKLI TAYPLARGA PARSE QILYAPMIZ
+//        BigDecimal sum = new BigDecimal(payMeCheckDto.getSum());
+//        long contractNumber = Long.parseLong(payMeCheckDto.getContractNumber());
+//        String sDate = payMeCheckDto.getCheckDate();//18:32:34 22.09.2022 HH:mm:ss dd.MM.YYYY
+//        Date date1 = new SimpleDateFormat("HH:mm:ss dd.MM.yyyy").parse(sDate);
 
         PayMeCheck payMeCheck = new PayMeCheck();
-        payMeCheck.setChatId(chatId);
+        payMeCheck.setChatId(chatId.toString());
         payMeCheck.setTransferType(payMeCheckDto.getTransferType());
         payMeCheck.setCheckNumber(payMeCheckDto.getCheckNumber());
         payMeCheck.setCardNum(payMeCheckDto.getCardNum());
-        payMeCheck.setSum(sum);
-        payMeCheck.setContractNumber(contractNumber);
+        payMeCheck.setSum(payMeCheckDto.getSum());
+        payMeCheck.setContractNumber(payMeCheckDto.getContractNumber());
         payMeCheck.setDescription(payMeCheckDto.getDescription());
-        payMeCheck.setCheckDate(new Timestamp(date1.getTime()));
+        payMeCheck.setCheckDate(payMeCheckDto.getCheckDate());
         payMeCheck.setPaymentId(payMeCheckDto.getPaymentId());
         payMeCheck.setPaymentStatus(payMeCheckDto.getPaymentStatus());
 
         return payMeCheck;
 
 
+    }
+
+    public boolean sendToServer(PayMeCheckDto dto) throws IOException {
+        try {
+            System.out.println(dto.toString());
+            OkHttpClient client = new OkHttpClient().newBuilder()
+                    .build();
+            MediaType mediaType = MediaType.parse("application/json");
+
+            RequestBody body = RequestBody.create(mediaType, dto.toString());
+            Request request = new Request.Builder()
+                    .url("http://192.168.106.204:8899/balance")
+                    .method("POST", body)
+                    .build();
+            Response response = client.newCall(request).execute();
+            System.out.println(response.body().string());
+            return true;
+        }catch (Exception e){
+            return false;
+        }
     }
 
 
@@ -127,3 +152,4 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 }
+

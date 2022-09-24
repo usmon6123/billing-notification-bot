@@ -21,16 +21,32 @@ public class PayMeCheck {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    private long chatId;
+    private String chatId;
     public String transferType;
     public String checkNumber;
     public String cardNum;
-    public BigDecimal sum;
-    public long contractNumber;
+    public String sum;
+    public String contractNumber;
     public String description;
-    public Timestamp checkDate;
+    public String checkDate;
     public String paymentId;
     public String paymentStatus;
+
+
+
+    //O'zgardi eskisi bu
+    // private Long id;
+    //    private long chatId;
+    //    public String transferType;
+    //    public String checkNumber;
+    //    public String cardNum;
+    //    public BigDecimal sum;
+    //    public long contractNumber;
+    //    public String description;
+    //    public Timestamp checkDate;
+    //    public String paymentId;
+    //    public String paymentStatus;
+
 
 
     @Override

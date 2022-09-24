@@ -17,4 +17,21 @@ public class PayMeCheckDto {
     public String checkDate;
     public String paymentId;
     public String paymentStatus;
+
+
+
+    @Override
+    public String toString() {
+        return "{" +
+                "\"transferType\":\"" + transferType + '\"' +
+                ", \"checkNumber\":\"" + checkNumber + '\"' +
+                ", \"cardNum\":\"" + cardNum + '\"' +
+                ", \"sum\":\"" + sum + '\"' +
+                ", \"contractNumber\":\"" + contractNumber + '\"' +
+                ", \"description\":\"" + description + '\"' +
+                ", \"checkDate\":\"" + checkDate + '\"' +
+                ", \"paymentId\":\"" + paymentId + '\"' +
+                ", \"paymentStatus\":\"" + paymentStatus + '\"' +
+                '}';
+    }
 }
